@@ -1,0 +1,78 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Circular / SpotifyMixUI substitute: use system sans ── */
+/* On real Spotify devices, SpotifyMixUI resolves. We fallback to system-ui. */
+
+* { box-sizing: border-box; }
+
+html { -webkit-text-size-adjust: 100%; }
+
+body {
+  font-family: 'SpotifyMixUI', CircularSp-Arab, CircularSp-Hebr, CircularSp-Cyrl,
+               CircularSp-Grek, CircularSp-Deva, 'Helvetica Neue', helvetica, arial,
+               'Hiragino Sans', system-ui, sans-serif;
+  background-color: #121212;
+  color: #ffffff;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* ── Spotify-style minimal scrollbar ─────────────────────── */
+::-webkit-scrollbar { width: 12px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb {
+  background: #535353;
+  border: 3px solid #121212;
+  border-radius: 6px;
+}
+::-webkit-scrollbar-thumb:hover { background: #b3b3b3; }
+
+/* ── Input / select / option resets ──────────────────────── */
+input, select, textarea, option {
+  font-family: inherit;
+  color: #ffffff;
+}
+select option { background: #1f1f1f; color: #ffffff; }
+
+input[type="number"]::-webkit-inner-spin-button,
+input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+input[type="number"] { -moz-appearance: textfield; }
+
+/* ── Focus ring ───────────────────────────────────────────── */
+:focus-visible { outline: 2px solid #1ed760; outline-offset: 2px; }
+
+/* ── Spotify pill button press ───────────────────────────── */
+.sp-btn-press { transition: transform 0.1s ease; }
+.sp-btn-press:active { transform: scale(0.95); }
+
+/* ── Stagger delays ───────────────────────────────────────── */
+.sp-d1  { animation-delay: 0.05s; }
+.sp-d2  { animation-delay: 0.10s; }
+.sp-d3  { animation-delay: 0.15s; }
+.sp-d4  { animation-delay: 0.20s; }
+.sp-d5  { animation-delay: 0.25s; }
+
+/* ── Card hover ───────────────────────────────────────────── */
+.sp-card-hover {
+  transition: background-color 0.2s ease;
+  cursor: pointer;
+}
+.sp-card-hover:hover { background-color: #252525; }
+
+/* ── Page enter ───────────────────────────────────────────── */
+.sp-page { animation: sp-fade-up 0.35s ease-out; }
+
+/* ── Date input calendar icon color on dark ─────────────── */
+input[type="date"]::-webkit-calendar-picker-indicator {
+  filter: invert(1);
+  opacity: 0.5;
+  cursor: pointer;
+}
+
+/* ── Uppercase button utility ────────────────────────────── */
+.sp-uppercase {
+  text-transform: uppercase;
+  letter-spacing: 1.4px;
+}
