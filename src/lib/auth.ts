@@ -1,129 +1,141 @@
-import { UserData, Role } from './types'
+import {
+  createUserWithEmailAndPassword,
+  signInWithEmailAndPassword,
+  signOut,
+  onAuthStateChanged,
+  updateProfile,
+  User,
+} from 'firebase/auth'
+import {
+  doc,
+  setDoc,
+  getDoc,
+} from 'firebase/firestore'
+import { auth, db } from './firebase'
+import { Role } from './types'
 
-const KEY_USERS = 'catatuang_users'
-const KEY_SESSION = 'catatuang_session'
-
-// Default admin credentials: kingjawir / kingjawir1q2q
-const DEFAULT_ADMIN_USERNAME = 'kingjawir'
+// ── Akun admin default ────────────────────────────────────────
+const DEFAULT_ADMIN_EMAIL    = 'kingjawir@catatuang.app'
 const DEFAULT_ADMIN_PASSWORD = 'kingjawir1q2q'
+const DEFAULT_ADMIN_USERNAME = 'kingjawir'
 
-async function hashPassword(password: string): Promise<string> {
-  const encoder = new TextEncoder()
-  const data = encoder.encode(password)
-  const hashBuffer = await crypto.subtle.digest('SHA-256', data)
-  const hashArray = Array.from(new Uint8Array(hashBuffer))
-  return hashArray.map(b => b.toString(16).padStart(2, '0')).join('')
-}
-
-function getAllUsers(): Record<string, UserData> {
-  if (typeof window === 'undefined') return {}
-  const json = localStorage.getItem(KEY_USERS)
-  if (!json) return {}
-  try {
-    return JSON.parse(json)
-  } catch {
-    return {}
-  }
-}
-
-function saveAllUsers(users: Record<string, UserData>): void {
-  localStorage.setItem(KEY_USERS, JSON.stringify(users))
-}
-
-/**
- * Inisialisasi akun admin default jika belum ada.
- * Dipanggil saat halaman login pertama kali dimuat.
- */
+// ── Inisialisasi admin default ────────────────────────────────
 export async function initDefaultAdmin(): Promise<void> {
-  const users = getAllUsers()
-  if (!users[DEFAULT_ADMIN_USERNAME]) {
-    const hash = await hashPassword(DEFAULT_ADMIN_PASSWORD)
-    users[DEFAULT_ADMIN_USERNAME] = {
-      nama: 'Administrator',
-      username: DEFAULT_ADMIN_USERNAME,
-      passwordHash: hash,
-      role: 'admin',
+  if (typeof window === 'undefined') return
+  try {
+    const ref = doc(db, 'users', 'kingjawir')
+    const snap = await getDoc(ref)
+    if (!snap.exists()) {
+      // Buat akun admin di Firebase Auth
+      const cred = await createUserWithEmailAndPassword(
+        auth, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD
+      )
+      await updateProfile(cred.user, { displayName: 'Administrator' })
+      // Simpan data user ke Firestore
+      await setDoc(doc(db, 'users', DEFAULT_ADMIN_USERNAME), {
+        nama:     'Administrator',
+        username: DEFAULT_ADMIN_USERNAME,
+        email:    DEFAULT_ADMIN_EMAIL,
+        role:     'admin' as Role,
+        uid:      cred.user.uid,
+      })
     }
-    saveAllUsers(users)
+  } catch {
+    // Admin sudah ada — abaikan error
   }
 }
 
+// ── Register ─────────────────────────────────────────────────
 export async function register(
   nama: string,
   username: string,
   password: string,
   role: Role = 'user'
 ): Promise<string | null> {
-  if (!nama.trim()) return 'Nama tidak boleh kosong.'
-  if (!username.trim()) return 'Username tidak boleh kosong.'
-  if (username.trim().length < 3) return 'Username minimal 3 karakter.'
+  if (!nama.trim())                    return 'Nama tidak boleh kosong.'
+  if (!username.trim())                return 'Username tidak boleh kosong.'
+  if (username.trim().length < 3)      return 'Username minimal 3 karakter.'
   if (!password || password.length < 4) return 'Password minimal 4 karakter.'
 
   const cleanUsername = username.trim().toLowerCase()
-  const users = getAllUsers()
 
-  if (users[cleanUsername]) return 'Username sudah dipakai. Pilih yang lain.'
+  // Cek username unik di Firestore
+  const snap = await getDoc(doc(db, 'users', cleanUsername))
+  if (snap.exists()) return 'Username sudah dipakai. Pilih yang lain.'
 
-  const hash = await hashPassword(password)
-  users[cleanUsername] = {
-    nama: nama.trim(),
-    username: cleanUsername,
-    passwordHash: hash,
-    role,
+  // Email virtual dari username (Firebase Auth butuh email)
+  const email = `${cleanUsername}@catatuang.app`
+
+  try {
+    const cred = await createUserWithEmailAndPassword(auth, email, password)
+    await updateProfile(cred.user, { displayName: nama.trim() })
+    await setDoc(doc(db, 'users', cleanUsername), {
+      nama:     nama.trim(),
+      username: cleanUsername,
+      email,
+      role,
+      uid:      cred.user.uid,
+    })
+    return null
+  } catch (e: any) {
+    if (e.code === 'auth/email-already-in-use') return 'Username sudah dipakai.'
+    return 'Gagal daftar: ' + e.message
   }
-  saveAllUsers(users)
-
-  return null // sukses
 }
 
+// ── Login ─────────────────────────────────────────────────────
 export async function login(
   username: string,
   password: string
 ): Promise<string | null> {
   if (!username.trim()) return 'Username tidak boleh kosong.'
-  if (!password) return 'Password tidak boleh kosong.'
+  if (!password)        return 'Password tidak boleh kosong.'
 
   const cleanUsername = username.trim().toLowerCase()
-  const users = getAllUsers()
-  const user = users[cleanUsername]
+  const email = `${cleanUsername}@catatuang.app`
 
-  if (!user) return 'Username tidak ditemukan.'
-
-  const hash = await hashPassword(password)
-  if (hash !== user.passwordHash) return 'Password salah.'
-
-  localStorage.setItem(KEY_SESSION, cleanUsername)
-  return null // sukses
+  try {
+    await signInWithEmailAndPassword(auth, email, password)
+    return null
+  } catch (e: any) {
+    if (
+      e.code === 'auth/user-not-found' ||
+      e.code === 'auth/invalid-credential' ||
+      e.code === 'auth/invalid-email'
+    ) return 'Username tidak ditemukan.'
+    if (e.code === 'auth/wrong-password') return 'Password salah.'
+    return 'Login gagal. Coba lagi.'
+  }
 }
 
+// ── Session ───────────────────────────────────────────────────
 export function isLoggedIn(): boolean {
   if (typeof window === 'undefined') return false
-  return localStorage.getItem(KEY_SESSION) !== null
+  return auth.currentUser !== null
 }
 
-export function getCurrentUser(): UserData | null {
-  if (typeof window === 'undefined') return null
-  const username = localStorage.getItem(KEY_SESSION)
-  if (!username) return null
-  const users = getAllUsers()
-  return users[username] || null
+export function getCurrentUser(): User | null {
+  return auth.currentUser
 }
 
 export function getCurrentUserName(): string {
-  const user = getCurrentUser()
-  return user ? user.nama : 'User'
+  return auth.currentUser?.displayName ?? 'User'
 }
 
-export function getCurrentRole(): Role {
-  const user = getCurrentUser()
-  return user?.role || 'user'
+export async function getCurrentRole(): Promise<Role> {
+  const user = auth.currentUser
+  if (!user) return 'user'
+  // Ambil username dari email virtual
+  const username = user.email?.replace('@catatuang.app', '') ?? ''
+  const snap = await getDoc(doc(db, 'users', username))
+  if (snap.exists()) return (snap.data().role as Role) || 'user'
+  return 'user'
 }
 
-export function isAdmin(): boolean {
-  return getCurrentRole() === 'admin'
+export async function logout(): Promise<void> {
+  await signOut(auth)
 }
 
-export function logout(): void {
-  if (typeof window === 'undefined') return
-  localStorage.removeItem(KEY_SESSION)
+export function onAuthChange(callback: (user: User | null) => void) {
+  return onAuthStateChanged(auth, callback)
 }

@@ -20,7 +20,7 @@ export default function TambahTransaksi({ onSaved }: { onSaved?: () => void }) {
     placeholder:text-sp-silver outline-none transition-all
     shadow-sp-inset focus:border focus:border-sp-white`
 
-  function handleSimpan() {
+  async function handleSimpan() {
     setError(''); setSukses('')
     if (!nama.trim()) { setError('Nama tidak boleh kosong.'); return }
     const jumlah = parseRupiah(jumlahStr)
@@ -34,16 +34,19 @@ export default function TambahTransaksi({ onSaved }: { onSaved?: () => void }) {
     }
 
     setSaving(true)
-    setTimeout(() => {
-      const list = ambilTransaksi()
+    try {
+      const list = await ambilTransaksi()
       list.unshift(baru)
-      simpanTransaksi(list)
+      await simpanTransaksi(list)
       setSukses(tipe === 'PEMASUKAN' ? `+${formatRupiah(jumlah)} masuk` : 'Tersimpan!')
-      setSaving(false)
       setNama(''); setJumlahStr(''); setKategori('Makanan'); setFoto(null)
       onSaved?.()
       setTimeout(() => setSukses(''), 3000)
-    }, 250)
+    } catch (e) {
+      setError('Gagal menyimpan. Coba lagi.')
+    } finally {
+      setSaving(false)
+    }
   }
 
   function handleFoto(e: React.ChangeEvent<HTMLInputElement>) {
@@ -55,28 +58,23 @@ export default function TambahTransaksi({ onSaved }: { onSaved?: () => void }) {
 
   return (
     <div className="p-6 sp-page max-w-xl mx-auto">
-      {/* Section title */}
       <p className="text-[24px] font-bold text-sp-white mb-1">Catat Transaksi</p>
       <p className="text-[14px] text-sp-silver mb-8">Tambah pengeluaran atau pemasukan baru.</p>
 
-      {/* ── Tipe toggle ── Spotify pill chip style ── */}
+      {/* Tipe toggle */}
       <div className="flex gap-2 mb-6 bg-sp2 p-1 rounded-sp-pill w-fit">
         {(['PENGELUARAN', 'PEMASUKAN'] as TipeTransaksi[]).map(t => (
           <button key={t} onClick={() => setTipe(t)}
             className={`px-5 h-9 rounded-sp-pill text-[14px] font-bold uppercase tracking-[1.4px]
                         transition-all sp-btn-press ${
-              tipe === t
-                ? 'bg-spgreen text-black'
-                : 'text-sp-silver hover:text-sp-white'
+              tipe === t ? 'bg-spgreen text-black' : 'text-sp-silver hover:text-sp-white'
             }`}>
             {t === 'PENGELUARAN' ? 'KELUAR' : 'MASUK'}
           </button>
         ))}
       </div>
 
-      {/* ── Form ── */}
       <div className="space-y-5">
-        {/* Nama */}
         <div>
           <label className="block text-[14px] font-bold text-sp-white mb-2">
             {tipe === 'PENGELUARAN' ? 'Nama Pengeluaran' : 'Sumber Pemasukan'}
@@ -86,7 +84,6 @@ export default function TambahTransaksi({ onSaved }: { onSaved?: () => void }) {
             className={inputCls} />
         </div>
 
-        {/* Jumlah + Kategori */}
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <div>
             <label className="block text-[14px] font-bold text-sp-white mb-2">Jumlah (Rp)</label>
@@ -99,7 +96,7 @@ export default function TambahTransaksi({ onSaved }: { onSaved?: () => void }) {
               <label className="block text-[14px] font-bold text-sp-white mb-2">Kategori</label>
               <select value={kategori} onChange={e => setKategori(e.target.value as Kategori)}
                 className={`${inputCls} cursor-pointer`}>
-                {['Makanan', 'Transportasi', 'Hiburan', 'Lainnya'].map(k => (
+                {['Makanan','Transportasi','Hiburan','Lainnya'].map(k => (
                   <option key={k} value={k}>{k}</option>
                 ))}
               </select>
@@ -107,14 +104,12 @@ export default function TambahTransaksi({ onSaved }: { onSaved?: () => void }) {
           ) : <div />}
         </div>
 
-        {/* Tanggal */}
         <div>
           <label className="block text-[14px] font-bold text-sp-white mb-2">Tanggal</label>
           <input type="date" value={tanggal} onChange={e => setTanggal(e.target.value)}
             className={inputCls} />
         </div>
 
-        {/* Foto */}
         <div>
           <label className="block text-[14px] font-bold text-sp-white mb-2">
             Bukti Foto <span className="text-sp-silver font-normal">(opsional)</span>
@@ -137,28 +132,17 @@ export default function TambahTransaksi({ onSaved }: { onSaved?: () => void }) {
           {foto && (
             <div className="mt-3 rounded-sp-card overflow-hidden animate-sp-scale-in"
                  style={{ boxShadow:'0px 8px 8px rgba(0,0,0,0.3)' }}>
-              <img src={foto} alt="Preview"
-                className="w-full max-h-48 object-contain bg-sp2" />
+              <img src={foto} alt="Preview" className="w-full max-h-48 object-contain bg-sp2" />
             </div>
           )}
         </div>
 
-        {/* Feedback */}
         {error  && <p className="text-[14px] font-bold text-sp-neg animate-sp-fade-in">{error}</p>}
-        {sukses && (
-          <p className="text-[14px] font-bold animate-sp-fade-in" style={{ color:'#1ed760' }}>
-            ✓ {sukses}
-          </p>
-        )}
+        {sukses && <p className="text-[14px] font-bold animate-sp-fade-in" style={{ color:'#1ed760' }}>✓ {sukses}</p>}
 
-        {/* Submit */}
         <button onClick={handleSimpan} disabled={saving}
-          className={`w-full h-12 rounded-sp-pill text-[14px] font-bold uppercase tracking-[2px]
-                      transition-all sp-btn-press disabled:opacity-50 ${
-            tipe === 'PENGELUARAN'
-              ? 'bg-spgreen text-black hover:brightness-110'
-              : 'bg-spgreen text-black hover:brightness-110'
-          }`}>
+          className="w-full h-12 rounded-sp-pill bg-spgreen text-black text-[14px] font-bold
+                     uppercase tracking-[2px] hover:brightness-110 transition-all sp-btn-press disabled:opacity-50">
           {saving ? 'MENYIMPAN...' : (tipe === 'PENGELUARAN' ? 'SIMPAN PENGELUARAN' : 'SIMPAN PEMASUKAN')}
         </button>
       </div>

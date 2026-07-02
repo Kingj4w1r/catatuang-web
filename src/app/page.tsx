@@ -1,7 +1,7 @@
 'use client'
 
 import { useState, useEffect } from 'react'
-import { isLoggedIn, getCurrentUserName, getCurrentRole, logout } from '@/lib/auth'
+import { onAuthChange, getCurrentRole, logout } from '@/lib/auth'
 import { Role } from '@/lib/types'
 import Dashboard from '@/components/Dashboard'
 import TambahTransaksi from '@/components/TambahTransaksi'
@@ -23,15 +23,21 @@ export default function Home() {
   const [role, setRole]             = useState<Role>('user')
   const [activeTab, setActiveTab]   = useState<Tab>('dashboard')
   const [refreshKey, setRefreshKey] = useState(0)
+  const [loading, setLoading]       = useState(true)
 
   useEffect(() => {
-    if (isLoggedIn()) {
-      setLoggedIn(true)
-      setUserName(getCurrentUserName())
-      setRole(getCurrentRole())
-    } else {
-      window.location.href = '/login'
-    }
+    const unsub = onAuthChange(async (user) => {
+      if (user) {
+        setLoggedIn(true)
+        setUserName(user.displayName ?? 'User')
+        const r = await getCurrentRole()
+        setRole(r)
+      } else {
+        window.location.href = '/login'
+      }
+      setLoading(false)
+    })
+    return () => unsub()
   }, [])
 
   function handleTab(tab: Tab) {
@@ -39,11 +45,14 @@ export default function Home() {
     setRefreshKey(k => k + 1)
   }
 
-  function handleLogout() {
-    if (confirm('Yakin ingin keluar?')) { logout(); window.location.href = '/login' }
+  async function handleLogout() {
+    if (confirm('Yakin ingin keluar?')) {
+      await logout()
+      window.location.href = '/login'
+    }
   }
 
-  if (!loggedIn) {
+  if (loading) {
     return (
       <div className="min-h-screen bg-sp0 flex items-center justify-center">
         <div className="w-6 h-6 border-2 border-spgreen border-t-transparent rounded-full animate-spin" />
@@ -51,16 +60,13 @@ export default function Home() {
     )
   }
 
-  const isAdmin   = role === 'admin'
+  const isAdmin    = role === 'admin'
   const visibleNav = NAV_ITEMS.filter(n => !n.adminOnly || isAdmin)
 
   return (
     <div className="flex h-screen bg-sp0 overflow-hidden">
-      {/* ══════════════════════════════════════════════════════════════
-          SIDEBAR — desktop/tablet
-      ══════════════════════════════════════════════════════════════ */}
+      {/* ── SIDEBAR desktop ── */}
       <aside className="hidden md:flex flex-col w-[240px] shrink-0 bg-sp0 border-r border-sp2">
-        {/* Logo */}
         <div className="px-6 pt-6 pb-4">
           <div className="flex items-center gap-3">
             <div className="w-9 h-9 rounded-sp-circle bg-spgreen flex items-center justify-center shrink-0">
@@ -70,7 +76,6 @@ export default function Home() {
           </div>
         </div>
 
-        {/* Nav items */}
         <nav className="flex-1 px-3 space-y-0.5 overflow-y-auto">
           {visibleNav.map(item => (
             <button key={item.value} onClick={() => handleTab(item.value)}
@@ -88,9 +93,7 @@ export default function Home() {
           ))}
         </nav>
 
-        {/* User + logout */}
         <div className="px-3 pb-4 border-t border-sp2 pt-4 mt-2">
-          {/* User info */}
           <div className="flex items-center gap-3 px-3 mb-3">
             <div className="w-8 h-8 rounded-sp-circle bg-sp3 flex items-center justify-center shrink-0">
               <span className="text-[12px] font-bold text-sp-silver">
@@ -100,27 +103,22 @@ export default function Home() {
             <div className="min-w-0">
               <p className="text-[14px] font-bold text-sp-white truncate">{userName}</p>
               <p className="text-[12px] text-sp-silver">
-                {isAdmin
-                  ? <span className="text-spgreen">Admin</span>
-                  : 'User · Hanya lihat'}
+                {isAdmin ? <span className="text-spgreen">Admin</span> : 'User · Hanya lihat'}
               </p>
             </div>
           </div>
-
           <button onClick={handleLogout}
             className="w-full h-9 px-4 rounded-sp-pill border border-sp-lborder text-sp-white
-                       text-[14px] font-bold uppercase tracking-[1.4px] sp-uppercase
+                       text-[14px] font-bold uppercase tracking-[1.4px]
                        hover:border-sp-white transition-colors sp-btn-press">
             KELUAR
           </button>
         </div>
       </aside>
 
-      {/* ══════════════════════════════════════════════════════════════
-          MAIN CONTENT
-      ══════════════════════════════════════════════════════════════ */}
+      {/* ── MAIN ── */}
       <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        {/* Top bar (mobile only — minimal) */}
+        {/* Mobile header */}
         <header className="md:hidden flex items-center justify-between px-5 py-3 bg-sp0 border-b border-sp2 shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-7 h-7 rounded-sp-circle bg-spgreen flex items-center justify-center">
@@ -141,7 +139,7 @@ export default function Home() {
           </div>
         </header>
 
-        {/* Scrollable content area */}
+        {/* Content */}
         <main className="flex-1 overflow-y-auto" key={refreshKey}>
           {activeTab === 'dashboard' && <Dashboard readOnly={!isAdmin} />}
           {activeTab === 'tambah' && (
@@ -163,16 +161,14 @@ export default function Home() {
           {activeTab === 'struk' && <Struk />}
         </main>
 
-        {/* ── BOTTOM NAV (mobile only) ── */}
+        {/* Bottom nav mobile */}
         <nav className="md:hidden flex items-stretch bg-sp1 border-t border-sp2 shrink-0"
              style={{ height: '64px' }}>
           {visibleNav.map(item => (
             <button key={item.value} onClick={() => handleTab(item.value)}
               className={`flex-1 flex flex-col items-center justify-center gap-0.5 sp-btn-press
                           transition-colors ${
-                activeTab === item.value
-                  ? 'text-spgreen'
-                  : 'text-sp-silver hover:text-sp-white'
+                activeTab === item.value ? 'text-spgreen' : 'text-sp-silver hover:text-sp-white'
               }`}>
               <span className="text-[20px] leading-none">{item.icon}</span>
               <span className={`text-[10px] ${activeTab === item.value ? 'font-bold' : 'font-normal'}`}>

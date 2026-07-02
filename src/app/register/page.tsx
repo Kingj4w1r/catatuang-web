@@ -4,12 +4,12 @@ import { useState } from 'react'
 import { register } from '@/lib/auth'
 
 export default function RegisterPage() {
-  const [nama, setNama]         = useState('')
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
+  const [nama, setNama]             = useState('')
+  const [username, setUsername]     = useState('')
+  const [password, setPassword]     = useState('')
   const [konfirmasi, setKonfirmasi] = useState('')
-  const [error, setError]       = useState('')
-  const [loading, setLoading]   = useState(false)
+  const [error, setError]           = useState('')
+  const [loading, setLoading]       = useState(false)
 
   async function handleRegister(e: React.FormEvent) {
     e.preventDefault(); setError('')
@@ -26,7 +26,6 @@ export default function RegisterPage() {
 
   return (
     <div className="min-h-screen bg-sp0 flex flex-col items-center justify-center px-5 py-10">
-      {/* Logo */}
       <div className="mb-8 text-center animate-sp-fade-in">
         <div className="w-16 h-16 rounded-sp-circle bg-spgreen flex items-center justify-center mx-auto mb-5">
           <span className="text-2xl font-bold text-black select-none">C</span>
@@ -35,7 +34,6 @@ export default function RegisterPage() {
         <p className="text-sp-silver text-[14px] mt-1">Buat akun baru</p>
       </div>
 
-      {/* Card */}
       <div className="w-full max-w-[450px] bg-sp1 rounded-sp-card px-10 py-10"
            style={{ boxShadow:'0px 8px 24px rgba(0,0,0,0.5)' }}>
         <form onSubmit={handleRegister} className="space-y-4">
@@ -74,7 +72,6 @@ export default function RegisterPage() {
           <p className="text-[12px] text-sp-silver text-center">
             Akun baru mendapat role <span className="text-sp-white font-bold">User</span> (hanya lihat data).
           </p>
-
           <p className="text-center text-sp-silver text-[14px]">
             Sudah punya akun?{' '}
             <a href="/login" className="text-sp-white font-bold hover:text-spgreen transition-colors underline">
