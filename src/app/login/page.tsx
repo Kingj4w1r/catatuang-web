@@ -75,19 +75,7 @@ export default function LoginPage() {
         </form>
       </div>
 
-      {/* ── Info chip ── */}
-      <div className="mt-6 w-full max-w-[396px] bg-sp2 rounded-sp-card px-6 py-4 animate-sp-fade-in sp-d3">
-        <p className="text-sp-white text-[12px] font-bold mb-2 uppercase tracking-[1.4px]">Info Login</p>
-        <div className="space-y-1.5 text-[12px] text-sp-silver">
-          <p><span className="text-sp-white font-bold">Admin</span> — dapat mengubah semua data</p>
-          <p className="pl-3">
-            User: <code className="bg-sp3 px-1.5 py-0.5 rounded-sp-sub text-spgreen">kingjawir</code>{' '}
-            Pass: <code className="bg-sp3 px-1.5 py-0.5 rounded-sp-sub text-spgreen">kingjawir1q2q</code>
-          </p>
-          <p><span className="text-sp-white font-bold">User</span> — hanya dapat melihat data</p>
-          <p className="pl-3">Daftar di halaman Register</p>
-        </div>
-      </div>
+
     </div>
   )
 }
