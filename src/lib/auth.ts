@@ -3,9 +3,9 @@ import { UserData, Role } from './types'
 const KEY_USERS = 'catatuang_users'
 const KEY_SESSION = 'catatuang_session'
 
-// Default admin credentials: admin / admin1234
-const DEFAULT_ADMIN_USERNAME = 'admin'
-const DEFAULT_ADMIN_PASSWORD = 'admin1234'
+// Default admin credentials: kingjawir / kingjawir1q2q
+const DEFAULT_ADMIN_USERNAME = 'kingjawir'
+const DEFAULT_ADMIN_PASSWORD = 'kingjawir1q2q'
 
 async function hashPassword(password: string): Promise<string> {
   const encoder = new TextEncoder()

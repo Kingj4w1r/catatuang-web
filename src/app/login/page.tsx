@@ -81,8 +81,8 @@ export default function LoginPage() {
         <div className="space-y-1.5 text-[12px] text-sp-silver">
           <p><span className="text-sp-white font-bold">Admin</span> — dapat mengubah semua data</p>
           <p className="pl-3">
-            User: <code className="bg-sp3 px-1.5 py-0.5 rounded-sp-sub text-spgreen">admin</code>{' '}
-            Pass: <code className="bg-sp3 px-1.5 py-0.5 rounded-sp-sub text-spgreen">admin1234</code>
+            User: <code className="bg-sp3 px-1.5 py-0.5 rounded-sp-sub text-spgreen">kingjawir</code>{' '}
+            Pass: <code className="bg-sp3 px-1.5 py-0.5 rounded-sp-sub text-spgreen">kingjawir1q2q</code>
           </p>
           <p><span className="text-sp-white font-bold">User</span> — hanya dapat melihat data</p>
           <p className="pl-3">Daftar di halaman Register</p>
