@@ -23,25 +23,44 @@ const DEFAULT_ADMIN_USERNAME = 'kingjawir'
 export async function initDefaultAdmin(): Promise<void> {
   if (typeof window === 'undefined') return
   try {
-    const ref = doc(db, 'users', 'kingjawir')
+    // Cek apakah doc admin sudah ada di Firestore
+    const ref  = doc(db, 'users', DEFAULT_ADMIN_USERNAME)
     const snap = await getDoc(ref)
-    if (!snap.exists()) {
-      // Buat akun admin di Firebase Auth
-      const cred = await createUserWithEmailAndPassword(
+    if (snap.exists()) return  // sudah ada, skip
+
+    // Coba login dulu — kalau berhasil berarti akun Auth sudah ada
+    // tapi doc Firestore belum — tulis doc-nya
+    try {
+      const cred = await signInWithEmailAndPassword(
         auth, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD
       )
-      await updateProfile(cred.user, { displayName: 'Administrator' })
-      // Simpan data user ke Firestore
-      await setDoc(doc(db, 'users', DEFAULT_ADMIN_USERNAME), {
+      await setDoc(ref, {
         nama:     'Administrator',
         username: DEFAULT_ADMIN_USERNAME,
         email:    DEFAULT_ADMIN_EMAIL,
         role:     'admin' as Role,
         uid:      cred.user.uid,
       })
+      await signOut(auth)  // logout lagi supaya tidak auto-redirect
+      return
+    } catch {
+      // Akun belum ada sama sekali — buat baru
     }
+
+    const cred = await createUserWithEmailAndPassword(
+      auth, DEFAULT_ADMIN_EMAIL, DEFAULT_ADMIN_PASSWORD
+    )
+    await updateProfile(cred.user, { displayName: 'Administrator' })
+    await setDoc(ref, {
+      nama:     'Administrator',
+      username: DEFAULT_ADMIN_USERNAME,
+      email:    DEFAULT_ADMIN_EMAIL,
+      role:     'admin' as Role,
+      uid:      cred.user.uid,
+    })
+    await signOut(auth)  // logout supaya halaman login tetap tampil
   } catch {
-    // Admin sudah ada — abaikan error
+    // Abaikan semua error
   }
 }
 
