@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
 
     // Token konfirmasi — base64url dari "id::timestamp"
     const token        = Buffer.from(`${transaksiId}::${Date.now()}`).toString('base64url')
-    const konfirmasiUrl = `${BASE_URL}/konfirmasi-hapus?token=${token}&id=${transaksiId}`
+    const konfirmasiUrl = `${BASE_URL}/konfirmasi-hapus?token=${token}&id=${transaksiId}&nama=${encodeURIComponent(transaksiNama)}`
 
     const tipe  = transaksiTipe === 'PEMASUKAN' ? '💚 Pemasukan' : '🔴 Pengeluaran'
     const emoji = transaksiTipe === 'PEMASUKAN' ? '+' : '-'

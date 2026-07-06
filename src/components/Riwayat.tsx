@@ -19,8 +19,23 @@ export default function Riwayat({ readOnly = false }: Props) {
   const [deleteMsg, setDeleteMsg]         = useState('')
   const [loading, setLoading]             = useState(true)
 
+  const KEY_PENDING = 'catatuang_pending_delete'
+
   useEffect(() => {
-    ambilTransaksi().then(list => { setTransaksiList(list); setLoading(false) })
+    const raw  = localStorage.getItem('catatuang_transaksi_v2')
+    const list: Transaksi[] = raw ? JSON.parse(raw) : []
+
+    // Cek pending delete dari konfirmasi Telegram
+    const pending: string[] = JSON.parse(localStorage.getItem(KEY_PENDING) || '[]')
+    if (pending.length > 0) {
+      const cleaned = list.filter(t => !pending.includes(t.id))
+      localStorage.setItem('catatuang_transaksi_v2', JSON.stringify(cleaned))
+      localStorage.removeItem(KEY_PENDING)
+      setTransaksiList(cleaned)
+    } else {
+      setTransaksiList(list)
+    }
+    setLoading(false)
   }, [])
 
   const filtered = transaksiList.filter(t =>
@@ -56,7 +71,7 @@ export default function Riwayat({ readOnly = false }: Props) {
       })
       if (res.ok) {
         setDeleteStatus('sent')
-        setDeleteMsg(`Notifikasi dikirim ke Telegram. Konfirmasi penghapusan "${t.nama}" dari Telegram kamu.`)
+        setDeleteMsg(`Notifikasi dikirim ke Telegram. Konfirmasi penghapusan "${t.nama}" dari Telegram kamu. Setelah konfirmasi, buka halaman Riwayat lagi untuk melihat perubahan.`)
       } else {
         setDeleteStatus('error')
         setDeleteMsg('Gagal mengirim notifikasi. Coba lagi.')
