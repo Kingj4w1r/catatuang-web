@@ -117,13 +117,14 @@ export async function login(
     await signInWithEmailAndPassword(auth, email, password)
     return null
   } catch (e: any) {
+    console.error('Firebase login error:', e.code, e.message)
     if (
       e.code === 'auth/user-not-found' ||
       e.code === 'auth/invalid-credential' ||
       e.code === 'auth/invalid-email'
     ) return 'Username tidak ditemukan.'
     if (e.code === 'auth/wrong-password') return 'Password salah.'
-    return 'Login gagal. Coba lagi.'
+    return `Login gagal: ${e.code}`
   }
 }
 
