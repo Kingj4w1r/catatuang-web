@@ -1,44 +1,71 @@
+import {
+  collection,
+  doc,
+  getDocs,
+  setDoc,
+  deleteDoc,
+  query,
+  orderBy,
+  getDoc,
+  writeBatch,
+} from 'firebase/firestore'
+import { auth, db } from './firebase'
 import { Transaksi } from './types'
 
-const KEY_TRANSAKSI = 'catatuang_transaksi_v2'
-const KEY_SALDO_AWAL = 'catatuang_saldo_awal'
+function getUserId(): string | null {
+  return auth.currentUser?.uid ?? null
+}
 
 // ── Transaksi ─────────────────────────────────────────────────
 
 export async function simpanTransaksi(list: Transaksi[]): Promise<void> {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(KEY_TRANSAKSI, JSON.stringify(list))
+  const uid = getUserId()
+  if (!uid) return
+
+  const colRef = collection(db, 'users_data', uid, 'transaksi')
+
+  // Hapus semua lalu tulis ulang pakai batch
+  const snap = await getDocs(colRef)
+  const batch = writeBatch(db)
+  snap.docs.forEach(d => batch.delete(d.ref))
+  list.forEach(t => batch.set(doc(colRef, t.id), t))
+  await batch.commit()
 }
 
 export async function ambilTransaksi(): Promise<Transaksi[]> {
-  if (typeof window === 'undefined') return []
-  const json = localStorage.getItem(KEY_TRANSAKSI)
-  if (!json) return []
-  try { return JSON.parse(json) as Transaksi[] }
-  catch { return [] }
+  const uid = getUserId()
+  if (!uid) return []
+
+  const colRef = collection(db, 'users_data', uid, 'transaksi')
+  const q      = query(colRef, orderBy('tanggal', 'desc'))
+  const snap   = await getDocs(q)
+  return snap.docs.map(d => d.data() as Transaksi)
 }
 
 export async function hapusTransaksiById(id: string): Promise<void> {
-  if (typeof window === 'undefined') return
-  const list = await ambilTransaksi()
-  const next = list.filter(t => t.id !== id)
-  localStorage.setItem(KEY_TRANSAKSI, JSON.stringify(next))
+  const uid = getUserId()
+  if (!uid) return
+  await deleteDoc(doc(db, 'users_data', uid, 'transaksi', id))
 }
 
 // ── Saldo Awal ────────────────────────────────────────────────
 
 export async function simpanSaldoAwal(saldo: number): Promise<void> {
-  if (typeof window === 'undefined') return
-  localStorage.setItem(KEY_SALDO_AWAL, String(saldo))
+  const uid = getUserId()
+  if (!uid) return
+  await setDoc(doc(db, 'users_data', uid, 'settings', 'saldo'), { saldoAwal: saldo })
 }
 
 export async function ambilSaldoAwal(): Promise<number> {
-  if (typeof window === 'undefined') return 0
-  const val = localStorage.getItem(KEY_SALDO_AWAL)
-  return val ? parseInt(val, 10) : 0
+  const uid = getUserId()
+  if (!uid) return 0
+  const snap = await getDoc(doc(db, 'users_data', uid, 'settings', 'saldo'))
+  return snap.exists() ? (snap.data().saldoAwal ?? 0) : 0
 }
 
 export async function sudahAdaSaldoAwal(): Promise<boolean> {
-  if (typeof window === 'undefined') return false
-  return localStorage.getItem(KEY_SALDO_AWAL) !== null
+  const uid = getUserId()
+  if (!uid) return false
+  const snap = await getDoc(doc(db, 'users_data', uid, 'settings', 'saldo'))
+  return snap.exists()
 }

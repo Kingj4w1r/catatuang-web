@@ -19,23 +19,24 @@ export default function Riwayat({ readOnly = false }: Props) {
   const [deleteMsg, setDeleteMsg]         = useState('')
   const [loading, setLoading]             = useState(true)
 
-  const KEY_PENDING = 'catatuang_pending_delete'
-
   useEffect(() => {
-    const raw  = localStorage.getItem('catatuang_transaksi_v2')
-    const list: Transaksi[] = raw ? JSON.parse(raw) : []
+    async function load() {
+      const list = await ambilTransaksi()
 
-    // Cek pending delete dari konfirmasi Telegram
-    const pending: string[] = JSON.parse(localStorage.getItem(KEY_PENDING) || '[]')
-    if (pending.length > 0) {
-      const cleaned = list.filter(t => !pending.includes(t.id))
-      localStorage.setItem('catatuang_transaksi_v2', JSON.stringify(cleaned))
-      localStorage.removeItem(KEY_PENDING)
-      setTransaksiList(cleaned)
-    } else {
-      setTransaksiList(list)
+      // Cek pending delete dari konfirmasi Telegram
+      const KEY_PENDING = 'catatuang_pending_delete'
+      const pending: string[] = JSON.parse(localStorage.getItem(KEY_PENDING) || '[]')
+      if (pending.length > 0) {
+        // Hapus dari Firestore
+        await Promise.all(pending.map(id => hapusTransaksiById(id)))
+        localStorage.removeItem(KEY_PENDING)
+        setTransaksiList(list.filter(t => !pending.includes(t.id)))
+      } else {
+        setTransaksiList(list)
+      }
+      setLoading(false)
     }
-    setLoading(false)
+    load()
   }, [])
 
   const filtered = transaksiList.filter(t =>
