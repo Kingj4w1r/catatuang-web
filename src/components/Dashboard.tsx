@@ -2,8 +2,8 @@
 
 import { useState, useEffect } from 'react'
 import { Transaksi } from '@/lib/types'
-import { ambilTransaksi, ambilSaldoAwal, simpanSaldoAwal } from '@/lib/storage'
-import { formatRupiah, formatAngka, formatInputAngka, parseRupiah, getNamaBulan } from '@/lib/format'
+import { ambilTransaksi, ambilSaldoAwal } from '@/lib/storage'
+import { formatRupiah, getNamaBulan } from '@/lib/format'
 
 const BATAS_HEMAT = 400_000
 
@@ -12,8 +12,6 @@ interface Props { readOnly?: boolean }
 export default function Dashboard({ readOnly = false }: Props) {
   const [saldoAwal, setSaldoAwal]         = useState(0)
   const [transaksiList, setTransaksiList] = useState<Transaksi[]>([])
-  const [showDialog, setShowDialog]       = useState(false)
-  const [inputSaldo, setInputSaldo]       = useState('')
   const [loadingData, setLoadingData]     = useState(true)
 
   useEffect(() => {
@@ -67,15 +65,6 @@ export default function Dashboard({ readOnly = false }: Props) {
   if (saldo <= 0) balanceColor = '#f3727f'
   else if (saldo <= BATAS_HEMAT) balanceColor = '#ffa42b'
 
-  async function saveSaldo() {
-    const n = parseRupiah(inputSaldo)
-    if (n >= 0) {
-      await simpanSaldoAwal(n)
-      setSaldoAwal(n)
-      setShowDialog(false)
-    }
-  }
-
   if (loadingData) {
     return (
       <div className="flex items-center justify-center py-24">
@@ -104,18 +93,6 @@ export default function Dashboard({ readOnly = false }: Props) {
           <div className="mt-4 inline-flex items-center gap-2 bg-sp-warn/20 rounded-sp-pill px-4 py-1.5 animate-sp-pulse">
             <span className="w-2 h-2 rounded-full bg-sp-warn" />
             <span className="text-[12px] font-bold text-sp-warn uppercase tracking-wider">Saldo Menipis</span>
-          </div>
-        )}
-
-        {!readOnly && (
-          <div className="mt-6">
-            <button
-              onClick={() => { setInputSaldo(saldoAwal > 0 ? formatAngka(saldoAwal) : ''); setShowDialog(true) }}
-              className="h-9 px-6 rounded-sp-pill bg-spgreen text-black text-[14px] font-bold
-                         uppercase tracking-[1.4px] hover:brightness-110 active:scale-95
-                         transition-all sp-btn-press">
-              UBAH SALDO
-            </button>
           </div>
         )}
       </div>
@@ -151,41 +128,6 @@ export default function Dashboard({ readOnly = false }: Props) {
                 <p className="text-[16px] font-bold text-sp-white">{formatRupiah(k.val)}</p>
               </div>
             ))}
-          </div>
-        </div>
-      )}
-
-      {/* Dialog saldo */}
-      {showDialog && !readOnly && (
-        <div className="fixed inset-0 flex items-center justify-center z-50 p-4 animate-sp-fade-in"
-             style={{ backgroundColor:'rgba(0,0,0,0.7)' }}
-             onClick={() => setShowDialog(false)}>
-          <div className="bg-sp1 rounded-sp-card w-full max-w-sm p-8 animate-sp-modal-in"
-               style={{ boxShadow:'0px 8px 24px rgba(0,0,0,0.5)' }}
-               onClick={e => e.stopPropagation()}>
-            <p className="text-[18px] font-bold text-sp-white mb-1">Ubah Saldo Awal</p>
-            <p className="text-[14px] text-sp-silver mb-6">Masukkan jumlah saldo awal</p>
-            <input
-              type="text" value={inputSaldo}
-              onChange={e => setInputSaldo(formatInputAngka(e.target.value))}
-              placeholder="0"
-              className="w-full h-12 px-4 mb-5 bg-sp2 text-sp-white text-[16px]
-                         rounded-sp-sub placeholder:text-sp-silver outline-none transition-all
-                         shadow-sp-inset focus:border focus:border-sp-white"
-            />
-            <div className="flex gap-3">
-              <button onClick={() => setShowDialog(false)}
-                className="flex-1 h-10 rounded-sp-pill border border-sp-lborder text-sp-white
-                           text-[14px] font-bold uppercase tracking-[1.4px] hover:border-sp-white
-                           transition-colors sp-btn-press">
-                BATAL
-              </button>
-              <button onClick={saveSaldo}
-                className="flex-1 h-10 rounded-sp-pill bg-spgreen text-black text-[14px] font-bold
-                           uppercase tracking-[1.4px] hover:brightness-110 transition-all sp-btn-press">
-                SIMPAN
-              </button>
-            </div>
           </div>
         </div>
       )}
